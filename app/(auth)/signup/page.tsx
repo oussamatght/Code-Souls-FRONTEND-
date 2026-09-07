@@ -1,78 +1,64 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { motion } from "framer-motion"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { ParticleBackground } from "@/components/particle-background"
-import { PixelButton } from "@/components/pixel-button"
-import { PixelInput } from "@/components/pixel-input"
-import { Logo } from "@/components/logo"
-import { useGame } from "@/lib/game-context"
-import { apiClient } from "@/lib/api-client"
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { ParticleBackground } from "@/components/particle-background";
+import { PixelButton } from "@/components/pixel-button";
+import { PixelInput } from "@/components/pixel-input";
+import { Logo } from "@/components/logo";
+import { useGame } from "@/lib/game-context";
+import { useAuth } from "@/lib/auth-context";
 
 export default function SignupPage() {
-  const router = useRouter()
-  const { setIsAuthenticated, setPlayer, player } = useGame()
-  const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const [errors, setErrors] = useState({})
-  const [loading, setLoading] = useState(false)
+  const router = useRouter();
+  const { setPlayer, player } = useGame();
+  const { signup } = useAuth();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
 
   const validate = () => {
-    const newErrors: Record<string, string> = {}
+    const newErrors: Record<string, string> = {};
 
-    if (!name || name.length < 3) {
-      newErrors.name = "Name must be at least 3 characters"
+    if (!name.trim() || name.trim().length < 3) {
+      newErrors.name = "Name must be at least 3 characters";
     }
-    if (!email || !email.includes("@")) {
-      newErrors.email = "Please enter a valid email"
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      newErrors.email = "Please enter a valid email";
     }
     if (!password || password.length < 8) {
-      newErrors.password = "Password must be at least 8 characters"
+      newErrors.password = "Password must be at least 8 characters";
     }
     if (password !== confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match"
+      newErrors.confirmPassword = "Passwords do not match";
     }
 
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!validate()) return
+  const handleSignup = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validate()) return;
 
-    setLoading(true)
-    
-    try {
-      // Real API call to backend
-      const response = await apiClient.signup(name, email, password)
-      
-      // Store token
-      apiClient.setToken(response.token)
-      
-      // Update game context
-      setIsAuthenticated(true)
-      setPlayer({ 
-        ...player, 
-        username: response.user.name,
-        id: response.user.id,
-        email: response.user.email
-      })
-      
-      // Redirect to intro
-      router.push("/intro")
-    } catch (err: any) {
-      setErrors({ 
-        general: err.message || "Signup failed. Please try again." 
-      })
-    } finally {
-      setLoading(false)
+    setLoading(true);
+
+    const result = signup(name, email, password);
+    if (!result.ok) {
+      setErrors({ general: result.error });
+      setLoading(false);
+      return;
     }
-  }
+
+    setPlayer({ ...player, username: name.trim() });
+    router.push("/intro");
+    setLoading(false);
+  };
 
   return (
     <div className="min-h-screen bg-souls-darker flex items-center justify-center p-4 relative overflow-hidden">
@@ -82,8 +68,7 @@ export default function SignupPage() {
         className="w-full max-w-md relative z-10"
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
-      >
+        transition={{ duration: 0.5 }}>
         <div className="flex justify-center mb-6">
           <Logo size="md" />
         </div>
@@ -96,8 +81,7 @@ export default function SignupPage() {
           }}
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2 }}
-        >
+          transition={{ delay: 0.2 }}>
           <h2 className="font-mono text-xl text-souls-light mb-6 text-center uppercase tracking-wider">
             Begin Your Journey
           </h2>
@@ -107,8 +91,7 @@ export default function SignupPage() {
               <motion.p
                 className="text-red-400 font-mono text-sm text-center"
                 initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-              >
+                animate={{ opacity: 1 }}>
                 {errors.general}
               </motion.p>
             )}
@@ -149,7 +132,12 @@ export default function SignupPage() {
               error={errors.confirmPassword}
             />
 
-            <PixelButton type="submit" variant="primary" size="lg" disabled={loading} className="w-full mt-2">
+            <PixelButton
+              type="submit"
+              variant="primary"
+              size="lg"
+              disabled={loading}
+              className="w-full mt-2">
               {loading ? "Creating..." : "Create Account"}
             </PixelButton>
           </form>
@@ -157,13 +145,12 @@ export default function SignupPage() {
           <div className="mt-6 text-center">
             <Link
               href="/login"
-              className="font-mono text-sm text-souls-light/60 hover:text-souls-red transition-colors"
-            >
+              className="font-mono text-sm text-souls-light/60 hover:text-souls-red transition-colors">
               Already a warrior? <span className="underline">Login</span>
             </Link>
           </div>
         </motion.div>
       </motion.div>
     </div>
-  )
+  );
 }

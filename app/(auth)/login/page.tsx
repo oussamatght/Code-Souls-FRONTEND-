@@ -1,52 +1,51 @@
-"use client"
-import { useState } from "react"
-import { motion } from "framer-motion"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { ParticleBackground } from "@/components/particle-background"
-import { PixelButton } from "@/components/pixel-button"
-import { PixelInput } from "@/components/pixel-input"
-import { Logo } from "@/components/logo"
-import { useGame } from "@/lib/game-context"
-import { apiClient } from "@/lib/api-client"
+"use client";
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { ParticleBackground } from "@/components/particle-background";
+import { PixelButton } from "@/components/pixel-button";
+import { PixelInput } from "@/components/pixel-input";
+import { Logo } from "@/components/logo";
+import { useGame } from "@/lib/game-context";
+import { useAuth } from "@/lib/auth-context";
 
 export default function LoginPage() {
-  const router = useRouter()
-  const { setIsAuthenticated, setPlayer, player } = useGame()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState("")
-  const [loading, setLoading] = useState(false)
+  const router = useRouter();
+  const { setPlayer, player } = useGame();
+  const { login } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    setLoading(true)
-
-    try {
-      // Real API call to backend
-      const response = await apiClient.login(email, password)
-      
-      // Store token
-      apiClient.setToken(response.token)
-      
-      // Update game context
-      setIsAuthenticated(true)
-      setPlayer({ 
-        ...player, 
-        username: response.user.name || email.split("@")[0],
-        id: response.user.id,
-        email: response.user.email
-      })
-      
-      // Redirect to intro
-      router.push("/intro")
-    } catch (err: any) {
-      setError(err.message || "Login failed. Please check your credentials.")
-    } finally {
-      setLoading(false)
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    if (!email.trim() || !email.includes("@")) {
+      setError("Please enter a valid email.");
+      return;
     }
-  }
+    if (!password) {
+      setError("Please enter your password.");
+      return;
+    }
+    setLoading(true);
+
+    const result = login(email, password);
+    if (!result.ok) {
+      setError(result.error);
+      setLoading(false);
+      return;
+    }
+
+    const storedUser = JSON.parse(
+      localStorage.getItem("currentUser") || "null",
+    );
+    setPlayer({ ...player, username: storedUser.name });
+    router.push("/intro");
+    setLoading(false);
+  };
 
   return (
     <div className="min-h-screen bg-souls-darker flex items-center justify-center p-4 relative overflow-hidden">
@@ -56,8 +55,7 @@ export default function LoginPage() {
         className="w-full max-w-md relative z-10"
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
-      >
+        transition={{ duration: 0.5 }}>
         <div className="flex justify-center mb-8">
           <Logo size="lg" />
         </div>
@@ -70,19 +68,18 @@ export default function LoginPage() {
           }}
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2 }}
-        >
+          transition={{ delay: 0.2 }}>
           <h2 className="font-mono text-xl text-souls-light mb-6 text-center uppercase tracking-wider">
             Enter the Gate
           </h2>
 
           <form onSubmit={handleLogin} className="flex flex-col gap-4">
-            <PixelInput 
-              type="email" 
-              label="Email" 
-              placeholder="warrior@code.souls" 
-              value={email} 
-              onChange={setEmail} 
+            <PixelInput
+              type="email"
+              label="Email"
+              placeholder="warrior@code.souls"
+              value={email}
+              onChange={setEmail}
               required
             />
 
@@ -99,13 +96,17 @@ export default function LoginPage() {
               <motion.p
                 className="text-red-400 font-mono text-sm text-center"
                 initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-              >
+                animate={{ opacity: 1 }}>
                 {error}
               </motion.p>
             )}
 
-            <PixelButton type="submit" variant="primary" size="lg" disabled={loading} className="w-full mt-2">
+            <PixelButton
+              type="submit"
+              variant="primary"
+              size="lg"
+              disabled={loading}
+              className="w-full mt-2">
               {loading ? "Entering..." : "Login"}
             </PixelButton>
           </form>
@@ -113,8 +114,7 @@ export default function LoginPage() {
           <div className="mt-6 text-center">
             <Link
               href="/signup"
-              className="font-mono text-sm text-souls-light/60 hover:text-souls-red transition-colors"
-            >
+              className="font-mono text-sm text-souls-light/60 hover:text-souls-red transition-colors">
               New warrior? <span className="underline">Create Account</span>
             </Link>
           </div>
@@ -135,9 +135,13 @@ export default function LoginPage() {
             opacity: [0.3, 0.6, 0.3],
             scale: [1, 1.1, 1],
           }}
-          transition={{ duration: 3, repeat: Number.POSITIVE_INFINITY, delay: 1.5 }}
+          transition={{
+            duration: 3,
+            repeat: Number.POSITIVE_INFINITY,
+            delay: 1.5,
+          }}
         />
       </motion.div>
     </div>
-  )
+  );
 }
