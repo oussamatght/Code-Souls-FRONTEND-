@@ -2,6 +2,7 @@
     "name": "my-GDGHACK",
     "version": "0.1.0",
     "private": true,
+    "packageManager": "pnpm@10.28.0",
     "scripts": {
         "build": "next build",
         "dev": "next dev",
@@ -87,5 +88,12 @@
         "postcss": "^8.5",
         "tailwindcss": "^4.1.9",
         "typescript": "^5"
+    },
+    "pnpm": {
+        "overrides": {
+            "framer-motion": "12.23.26",
+            "motion-dom": "12.23.26",
+            "motion-utils": "12.23.26"
+        }
     }
 }
